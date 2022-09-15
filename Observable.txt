@@ -1,0 +1,74 @@
+import { Component, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
+
+import { MessageService } from './_services/index';
+
+@Component({
+    selector: 'app',
+    templateUrl: 'app.component.html'
+})
+
+export class AppComponent implements OnDestroy {
+    messages: any[] = [];
+    subscription: Subscription;
+
+    constructor(private messageService: MessageService) {
+        // subscribe to home component messages
+        this.subscription = this.messageService.getMessage().subscribe(message => {
+          if (message) {
+            this.messages.push(message);
+          } else {
+            // clear messages when empty message received
+            this.messages = [];
+          }
+        });
+    }
+
+    ngOnDestroy() {
+        // unsubscribe to ensure no memory leaks
+        this.subscription.unsubscribe();
+    }
+}
+
+
+-----------------
+import { Component } from '@angular/core';
+
+import { MessageService } from '../_services/index';
+
+@Component({ templateUrl: 'home.component.html' })
+export class HomeComponent {
+    constructor(private messageService: MessageService) { }
+
+    sendMessage(): void {
+        // send message to subscribers via observable subject
+        this.messageService.sendMessage('Message from Home Component to App Component!');
+    }
+
+    clearMessages(): void {
+        // clear messages
+        this.messageService.clearMessages();
+    }
+}
+
+---------------------------
+import { Injectable } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class MessageService {
+    private subject = new Subject<any>();
+
+    sendMessage(message: string) {
+        this.subject.next({ text: message });
+    }
+
+    clearMessages() {
+        this.subject.next();
+    }
+
+    getMessage(): Observable<any> {
+        return this.subject.asObservable();
+    }
+}
+--------------------------
